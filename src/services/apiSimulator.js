@@ -141,45 +141,47 @@ class ApiSimulator {
     }
 
     /**
-     * Récupère des données depuis le JSON selon un chemin
-     */
-    getDataFromPath(path) {
-        // Convertir le chemin en segments, en ignorant le préfixe
-        const segments = path.split('/').filter(s => s.length > 0);
-
-        let currentData = this.data;
-        for (let i = 0; i < segments.length; i++) {
-            const segment = segments[i];
-
-            // Si le segment ressemble à un ID numérique et le données actuelles sont un tableau
-            if (!isNaN(segment) && Array.isArray(currentData)) {
-                const index = parseInt(segment) - 1; // Convertir ID en index (hypothèse: IDs commence à 1)
-                if (index >= 0 && index < currentData.length) {
-                    currentData = currentData[index];
-                } else {
-                    return null; // Index hors limites
-                }
-            }
-            // Sinon, le segment est une clé d'objet
-            else if (currentData[segment] !== undefined) {
-                currentData = currentData[segment];
-            } else {
-                // Essayer de trouver un objet dans un tableau avec cet ID
-                if (Array.isArray(currentData)) {
-                    const item = currentData.find(item => item.id === segment || item.id === parseInt(segment));
-                    if (item) {
-                        currentData = item;
-                    } else {
-                        return null; // Clé non trouvée
-                    }
-                } else {
-                    return null; // Clé non trouvée
-                }
-            }
+ * Récupère des données depuis le JSON selon un chemin
+ * Cette version ne confond jamais l'index d'un tableau avec l'ID d'un objet
+ */
+getDataFromPath(path) {
+    // Convertir le chemin en segments, en ignorant le préfixe
+    const segments = path.split('/').filter(s => s.length > 0);
+    
+    let currentData = this.data;
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      
+      // Si c'est une propriété directe de l'objet (comme "etudiants", "formations")
+      if (currentData[segment] !== undefined) {
+        currentData = currentData[segment];
+        continue;
+      }
+      
+      // Si on a un tableau, on cherche un élément par son ID
+      if (Array.isArray(currentData)) {
+        // Convertir en nombre si c'est numérique, sinon garder comme chaîne
+        const searchId = !isNaN(segment) ? Number(segment) : segment;
+        
+        // Recherche stricte par ID
+        const item = currentData.find(item => item.id === searchId);
+        
+        if (item) {
+          currentData = item;
+          continue;
+        } else {
+          console.log(`Élément avec ID ${searchId} non trouvé dans`, currentData);
+          return null; // ID non trouvé dans le tableau
         }
-
-        return currentData;
+      }
+      
+      // Si on ne trouve pas de correspondance
+      console.log(`Segment '${segment}' non trouvé dans le chemin`, path);
+      return null;
     }
+    
+    return currentData;
+  }
 
     /**
      * Gère les requêtes GET

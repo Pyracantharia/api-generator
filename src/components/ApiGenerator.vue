@@ -11,37 +11,50 @@
                     <input v-model="apiPrefix" placeholder="/api/v1" />
                 </label>
             </div>
-            <button @click="generateApi" :disabled="!isValidJson">Générer l'API</button>
+            <div class="actions">
+                <button @click="generateApi" :disabled="!isValidJson" class="generate-btn">Générer l'API</button>
+                <button v-if="hasExistingApi" @click="loadExistingApi" class="load-btn">Charger l'API existante</button>
+            </div>
         </div>
 
         <div v-if="generatedRoutes.length" class="results">
             <h2>Routes API générées</h2>
             <ul>
                 <li v-for="(route, index) in generatedRoutes" :key="index">
-                    <span class="method">{{ route.method }}</span>
+                    <span class="method" :class="route.method.toLowerCase()">{{ route.method }}</span>
                     <span class="url">{{ route.url }}</span>
                     <span class="description">{{ route.description }}</span>
                 </li>
             </ul>
-            <button @click="saveToDocs">Enregistrer la documentation</button>
+            <div class="action-buttons">
+                <button @click="saveToDocs" class="save-btn">Enregistrer la documentation</button>
+                <button @click="goToTest" class="test-btn">Tester l'API</button>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { generateApiRoutes } from '../services/apiGenerator'
-import { saveDocumentation } from '../services/docGenerator'
+import { saveDocumentation, getDocumentation, hasDocumentation } from '../services/docGenerator'
 import apiSimulator from '../services/apiSimulator'
 import { useRouter } from 'vue-router'
 
 export default {
     name: 'ApiGenerator',
-    setup() {
+    emits: ['api-saved'],
+    setup(props, { emit }) {
         const router = useRouter()
         const jsonInput = ref('')
         const apiPrefix = ref('/api/v1')
         const generatedRoutes = ref([])
+        const hasExistingApi = ref(false)
+
+        // Vérifier s'il existe déjà une API sauvegardée
+        onMounted(() => {
+            hasExistingApi.value = hasDocumentation();
+        })
 
         const isValidJson = computed(() => {
             try {
@@ -52,6 +65,18 @@ export default {
                 return false
             }
         })
+
+        // Charger l'API existante
+        const loadExistingApi = () => {
+            try {
+                const docs = getDocumentation();
+                jsonInput.value = JSON.stringify(docs.jsonStructure, null, 2);
+                apiPrefix.value = docs.apiPrefix || '/api/v1';
+                generatedRoutes.value = docs.routes || [];
+            } catch (e) {
+                alert('Erreur lors du chargement de l\'API : ' + e.message);
+            }
+        }
 
         const generateApi = () => {
             try {
@@ -80,10 +105,17 @@ export default {
                     apiPrefix.value
                 )
 
+                // Émettre un événement pour informer App.vue
+                emit('api-saved')
+
                 router.push('/docs')
             } catch (e) {
                 alert('Erreur lors de la sauvegarde: ' + e.message)
             }
+        }
+
+        const goToTest = () => {
+            router.push('/test')
         }
 
         return {
@@ -91,8 +123,11 @@ export default {
             apiPrefix,
             generatedRoutes,
             isValidJson,
+            hasExistingApi,
             generateApi,
-            saveToDocs
+            loadExistingApi,
+            saveToDocs,
+            goToTest
         }
     }
 }
@@ -123,8 +158,12 @@ textarea {
     text-align: left;
 }
 
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
 button {
-    background-color: #42b983;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -133,9 +172,32 @@ button {
     font-size: 16px;
 }
 
+.generate-btn {
+    background-color: #42b983;
+}
+
+.load-btn {
+    background-color: #3498db;
+}
+
+.save-btn {
+    background-color: #27ae60;
+}
+
+.test-btn {
+    background-color: #f39c12;
+}
+
 button:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
 }
 
 .results {
@@ -161,12 +223,28 @@ li {
 
 .method {
     font-weight: bold;
-    background-color: #e9f5fb;
     padding: 5px 10px;
     border-radius: 4px;
     margin-right: 10px;
     min-width: 60px;
     text-align: center;
+    color: white;
+}
+
+.method.get {
+    background-color: #61affe;
+}
+
+.method.post {
+    background-color: #49cc90;
+}
+
+.method.put {
+    background-color: #fca130;
+}
+
+.method.delete {
+    background-color: #f93e3e;
 }
 
 .url {
