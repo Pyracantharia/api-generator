@@ -4,6 +4,8 @@
 
         <div class="json-input">
             <h2>Fichier JSON</h2>
+            <!-- Ajout du champ d'import -->
+            <input type="file" accept=".json,application/json" @change="importJsonFile" class="file-input" />
             <textarea v-model="jsonInput" placeholder="Collez votre JSON ici..." rows="15"></textarea>
             <div class="options">
                 <label>
@@ -30,6 +32,14 @@
                 <button @click="saveToDocs" class="save-btn">Enregistrer la documentation</button>
                 <button @click="goToTest" class="test-btn">Tester l'API</button>
             </div>
+        </div>
+
+        <div>
+            <h3>Exemple de réponse</h3>
+            <details>
+                <summary>Voir l'exemple JSON</summary>
+                <pre>{{ JSON.stringify(exemple, null, 2) }}</pre>
+            </details>
         </div>
     </div>
 </template>
@@ -70,13 +80,31 @@ export default {
         const loadExistingApi = () => {
             try {
                 const docs = getDocumentation();
-                jsonInput.value = JSON.stringify(docs.jsonStructure, null, 2);
+                // Affiche seulement un aperçu (10 premiers champs)
+                jsonInput.value = JSON.stringify(getJsonPreview(docs.jsonStructure), null, 2);
                 apiPrefix.value = docs.apiPrefix || '/api/v1';
                 generatedRoutes.value = docs.routes || [];
             } catch (e) {
                 alert('Erreur lors du chargement de l\'API : ' + e.message);
             }
         }
+
+        // Ajout de la fonction d'import
+        const importJsonFile = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    // Vérifie que le contenu est bien du JSON
+                    const json = JSON.parse(e.target.result);
+                    jsonInput.value = JSON.stringify(json, null, 2);
+                } catch (err) {
+                    alert('Le fichier sélectionné n\'est pas un JSON valide.');
+                }
+            };
+            reader.readAsText(file);
+        };
 
         const generateApi = () => {
             try {
@@ -89,25 +117,23 @@ export default {
 
         const saveToDocs = () => {
             try {
+                const jsonData = JSON.parse(jsonInput.value)
                 const docsData = {
                     routes: generatedRoutes.value,
                     apiPrefix: apiPrefix.value,
-                    jsonStructure: JSON.parse(jsonInput.value)
+                    jsonStructure: extractJsonStructure(jsonData),
+                    jsonData // <-- ajoute cette ligne
                 }
-
-                // Enregistrer la documentation
                 saveDocumentation(docsData)
 
-                // Initialiser le simulateur d'API
+                // Initialiser le simulateur d'API avec les vraies données
                 apiSimulator.initialize(
-                    JSON.parse(jsonInput.value),
+                    jsonData,
                     generatedRoutes.value,
                     apiPrefix.value
                 )
 
-                // Émettre un événement pour informer App.vue
                 emit('api-saved')
-
                 router.push('/docs')
             } catch (e) {
                 alert('Erreur lors de la sauvegarde: ' + e.message)
@@ -127,9 +153,37 @@ export default {
             generateApi,
             loadExistingApi,
             saveToDocs,
-            goToTest
+            goToTest,
+            importJsonFile
         }
     }
+}
+
+// Fonction pour extraire la structure JSON
+function extractJsonStructure(obj, depth = 2) {
+    if (depth === 0 || typeof obj !== 'object' || obj === null) return typeof obj;
+    if (Array.isArray(obj)) {
+        return [extractJsonStructure(obj[0], depth - 1)];
+    }
+    const structure = {};
+    for (const key in obj) {
+        structure[key] = extractJsonStructure(obj[key], depth - 1);
+    }
+    return structure;
+}
+
+// Fonction pour obtenir un aperçu du JSON
+function getJsonPreview(obj, max = 10) {
+    if (Array.isArray(obj)) {
+        return obj.slice(0, max);
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        const keys = Object.keys(obj).slice(0, max);
+        const preview = {};
+        keys.forEach(key => preview[key] = obj[key]);
+        return preview;
+    }
+    return obj;
 }
 </script>
 
@@ -256,5 +310,10 @@ li {
 .description {
     color: #666;
     font-style: italic;
+}
+
+.file-input {
+    margin-bottom: 10px;
+    display: block;
 }
 </style>

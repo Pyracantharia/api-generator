@@ -25,7 +25,7 @@
           <div v-if="selectedRoute" class="request-form">
             <h2>Tester {{ selectedRoute.method }} {{ selectedRoute.url }}</h2>
             <p class="description">{{ selectedRoute.description }}</p>
-            
+
             <!-- Formulaire de paramètres d'URL -->
             <div v-if="hasUrlParams" class="params-section">
               <h3>Paramètres d'URL</h3>
@@ -34,10 +34,10 @@
                 <input type="text" v-model="urlParams[name]" :placeholder="'Valeur pour ' + name" />
               </div>
             </div>
-            
+
             <!-- Formulaire pour le corps de la requête (POST/PUT) -->
             <div v-if="['POST', 'PUT'].includes(selectedRoute.method)" class="body-section">
-              <h3>Corps de la requête</h3>
+              <h3>Corps de la requête (JSON)</h3>
               <textarea 
                 v-model="requestBody" 
                 placeholder="Entrez le JSON pour le corps de la requête"
@@ -48,7 +48,7 @@
                 <span v-else class="invalid">✗ JSON invalide</span>
               </div>
             </div>
-            
+
             <button 
               @click="sendRequest" 
               :disabled="!isRequestValid" 
@@ -57,7 +57,6 @@
               Envoyer la requête
             </button>
           </div>
-          
           <div v-else class="no-route-selected">
             <p>Sélectionnez une route dans la liste pour la tester</p>
           </div>

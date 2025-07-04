@@ -1,4 +1,3 @@
-
 <template>
     <div class="documentation">
       <h1>Documentation de l'API</h1>
@@ -16,37 +15,38 @@
         <pre>{{ formattedJsonStructure }}</pre>
         
         <h2>Points de terminaison</h2>
-        <div class="endpoint" v-for="(route, index) in apiDocs.routes" :key="index">
-          <div class="endpoint-header">
-            <span class="method" :class="route.method.toLowerCase()">{{ route.method }}</span>
-            <span class="url">{{ route.url }}</span>
-          </div>
-          <div class="endpoint-details">
-            <p>{{ route.description }}</p>
-            
-            <h4 v-if="route.params && route.params.length">Paramètres</h4>
-            <table v-if="route.params && route.params.length">
-              <thead>
-                <tr>
-                  <th>Nom</th>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Requis</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(param, pIndex) in route.params" :key="pIndex">
-                  <td>{{ param.name }}</td>
-                  <td>{{ param.type }}</td>
-                  <td>{{ param.description }}</td>
-                  <td>{{ param.required ? 'Oui' : 'Non' }}</td>
-                </tr>
-              </tbody>
-            </table>
-            
-            <h4>Exemple de réponse</h4>
-            <pre v-if="route.responseExample">{{ route.responseExample }}</pre>
-          </div>
+        <!-- Utilisation de <details> pour chaque endpoint -->
+        <div v-for="(route, index) in apiDocs.routes" :key="index" class="endpoint">
+          <details>
+            <summary class="endpoint-header">
+              <span class="method" :class="route.method.toLowerCase()">{{ route.method }}</span>
+              <span class="url">{{ route.url }}</span>
+            </summary>
+            <div class="endpoint-details">
+              <p>{{ route.description }}</p>
+              <h4 v-if="route.params && route.params.length">Paramètres</h4>
+              <table v-if="route.params && route.params.length">
+                <thead>
+                  <tr>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Requis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(param, pIndex) in route.params" :key="pIndex">
+                    <td>{{ param.name }}</td>
+                    <td>{{ param.type }}</td>
+                    <td>{{ param.description }}</td>
+                    <td>{{ param.required ? 'Oui' : 'Non' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h4>Exemple de réponse</h4>
+              <pre v-if="route.responseExample">{{ route.responseExample }}</pre>
+            </div>
+          </details>
         </div>
       </div>
     </div>
@@ -111,12 +111,26 @@
     border-radius: 4px;
   }
   
-  .endpoint-header {
+  .endpoint details {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafbfc;
+  }
+  
+  .endpoint summary {
     padding: 15px;
     background-color: #f8f8f8;
     border-bottom: 1px solid #ddd;
     display: flex;
     align-items: center;
+    cursor: pointer;
+    font-size: 1.1em;
+    outline: none;
+  }
+  
+  .endpoint[open] summary {
+    background-color: #e6f7ff;
   }
   
   .endpoint-details {
